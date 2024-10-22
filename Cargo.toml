@@ -1,5 +1,5 @@
 [package]
-name = "plc"
+name = "kim_plc"
 version = "0.1.0"
 edition = "2021"
 
