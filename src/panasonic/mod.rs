@@ -3,7 +3,7 @@
 mod newtocol;
 mod newtocol_tcp;
 
-use self::newtocol_tcp::NewtocolTcpPlc;
+pub use self::newtocol_tcp::NewtocolTcpPlc;
 use crate::{core::PlcConnector, IPlc};
 use std::time::Duration;
 

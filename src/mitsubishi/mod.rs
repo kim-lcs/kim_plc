@@ -3,7 +3,7 @@
 mod mc;
 mod mc_3e_binary_tcp;
 
-use self::mc_3e_binary_tcp::Mc3eBinaryTcpPlc;
+pub use self::mc_3e_binary_tcp::Mc3eBinaryTcpPlc;
 use crate::{core::PlcConnector, IPlc};
 use std::time::Duration;
 
