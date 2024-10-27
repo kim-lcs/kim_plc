@@ -19,6 +19,21 @@ pub struct Mc3eBinaryTcpPlc {
     timeout: Duration,
 }
 
+impl Clone for Mc3eBinaryTcpPlc {
+    fn clone(&self) -> Self {
+        Self {
+            conn: self.conn.clone(),
+            client: if self.client.is_none() {
+                None
+            } else {
+                let client = self.client.as_ref().unwrap();
+                Some(client.clone())
+            },
+            timeout: self.timeout.clone(),
+        }
+    }
+}
+
 unsafe impl Send for Mc3eBinaryTcpPlc {}
 
 unsafe impl Sync for Mc3eBinaryTcpPlc {}
