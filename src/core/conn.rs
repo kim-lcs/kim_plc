@@ -1,29 +1,27 @@
-/// ! PLC连接参数
-#[derive(Debug)]
+// ! PLC connect paramter
+
+/// plc connect paraters
+#[derive(Debug, Clone)]
 pub enum PlcConnector {
-    /// 串口通讯参数
     SerialPort(SerailPort),
-    /// 网络通讯参数
     Network(Network),
 }
 
 impl PlcConnector {
-    /// 串口参数
+    /// create a new serial type connector parameters
+    /// * `serial`-full parameters
     pub fn new_serial(serial: SerailPort) -> Self {
-        PlcConnector::SerialPort(serial)
+        serial.into()
     }
 
-    /// 网络参数
-    /// * `ip` ip地址
-    /// * `port` ip 端口
+    /// create a new network type connector parameters
+    /// * `ip`-connect ip address
+    /// * `port`-connect port
     pub fn new_network(ip: impl Into<String>, port: u16) -> Self {
-        PlcConnector::Network(Network {
-            ip_address: ip.into(),
-            ip_port: port,
-        })
+        Network::new(ip, port).into()
     }
 
-    /// 连接转换为字符串
+    /// convert to easy string
     pub fn to_string(&self) -> String {
         match self {
             PlcConnector::SerialPort(serial) => format!("{}", serial.port_name),
@@ -32,8 +30,20 @@ impl PlcConnector {
     }
 }
 
-/// 串口参数
-#[derive(Debug)]
+impl From<Network> for PlcConnector {
+    fn from(value: Network) -> Self {
+        PlcConnector::Network(value)
+    }
+}
+
+impl From<SerailPort> for PlcConnector {
+    fn from(value: SerailPort) -> Self {
+        PlcConnector::SerialPort(value)
+    }
+}
+
+/// a serial port type connect parameter struct
+#[derive(Debug, Clone)]
 pub struct SerailPort {
     pub port_name: String,
     pub baud_rate: u32,
@@ -54,9 +64,27 @@ impl Default for SerailPort {
     }
 }
 
-/// 网口
-#[derive(Debug)]
+/// a network type connect parameter struct
+#[derive(Debug, Clone)]
 pub struct Network {
     pub ip_address: String,
     pub ip_port: u16,
+}
+
+impl Default for Network {
+    fn default() -> Self {
+        Self {
+            ip_address: "192.168.1.100".into(),
+            ip_port: 6000,
+        }
+    }
+}
+
+impl Network {
+    pub fn new(ip: impl Into<String>, port: u16) -> Self {
+        Self {
+            ip_address: ip.into(),
+            ip_port: port,
+        }
+    }
 }
