@@ -1,10 +1,19 @@
 // ! PLC connect paramter
 
 /// plc connect paraters
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum PlcConnector {
     SerialPort(SerailPort),
     Network(Network),
+}
+
+impl Clone for PlcConnector {
+    fn clone(&self) -> Self {
+        match self {
+            Self::SerialPort(val) => val.clone().into(),
+            Self::Network(val) => val.clone().into(),
+        }
+    }
 }
 
 impl PlcConnector {
@@ -43,7 +52,7 @@ impl From<SerailPort> for PlcConnector {
 }
 
 /// a serial port type connect parameter struct
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct SerailPort {
     pub port_name: String,
     pub baud_rate: u32,
@@ -64,8 +73,20 @@ impl Default for SerailPort {
     }
 }
 
+impl Clone for SerailPort {
+    fn clone(&self) -> Self {
+        Self {
+            port_name: self.port_name.clone(),
+            baud_rate: self.baud_rate.clone(),
+            data_bits: self.data_bits.clone(),
+            stop_bits: self.stop_bits.clone(),
+            parity: self.parity.clone(),
+        }
+    }
+}
+
 /// a network type connect parameter struct
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Network {
     pub ip_address: String,
     pub ip_port: u16,
@@ -80,11 +101,32 @@ impl Default for Network {
     }
 }
 
+impl Clone for Network {
+    fn clone(&self) -> Self {
+        Self {
+            ip_address: self.ip_address.clone(),
+            ip_port: self.ip_port.clone(),
+        }
+    }
+}
+
 impl Network {
     pub fn new(ip: impl Into<String>, port: u16) -> Self {
         Self {
             ip_address: ip.into(),
             ip_port: port,
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_clone() {
+        let conn: PlcConnector = Network::default().into();
+        let conn_clone = conn.clone();
+        assert_eq!(conn.to_string(), conn_clone.to_string())
     }
 }
