@@ -21,6 +21,8 @@ pub struct Mc3eBinaryTcpPlc {
 
 unsafe impl Send for Mc3eBinaryTcpPlc {}
 
+unsafe impl Sync for Mc3eBinaryTcpPlc {}
+
 impl IPlc for Mc3eBinaryTcpPlc {
     fn new(conn: PlcConnector, timeout: std::time::Duration) -> Self {
         Mc3eBinaryTcpPlc {
