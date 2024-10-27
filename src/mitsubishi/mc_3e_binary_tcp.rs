@@ -19,6 +19,8 @@ pub struct Mc3eBinaryTcpPlc {
     timeout: Duration,
 }
 
+unsafe impl Send for Mc3eBinaryTcpPlc {}
+
 impl IPlc for Mc3eBinaryTcpPlc {
     fn new(conn: PlcConnector, timeout: std::time::Duration) -> Self {
         Mc3eBinaryTcpPlc {

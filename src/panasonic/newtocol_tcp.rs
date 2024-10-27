@@ -33,6 +33,8 @@ impl NewtocolTcpPlc {
     }
 }
 
+unsafe impl Send for NewtocolTcpPlc {}
+
 impl IPlc for NewtocolTcpPlc {
     fn new(conn: PlcConnector, timeout: std::time::Duration) -> Self {
         NewtocolTcpPlc {
