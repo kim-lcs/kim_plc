@@ -12,11 +12,11 @@ use crate::prelude::*;
 /// 三菱 网口PLC MC协议 二进制
 pub struct Mc3eBinaryTcpPlc {
     /// 连接参数
-    conn: PlcConnector,
+    pub conn: PlcConnector,
     /// 客户端连接
-    client: Option<Arc<Mutex<TcpStream>>>,
+    pub client: Option<Arc<Mutex<TcpStream>>>,
     /// 超时时间
-    timeout: Duration,
+    pub timeout: Duration,
 }
 
 impl Clone for Mc3eBinaryTcpPlc {
@@ -410,6 +410,7 @@ fn parse_mc_3e_binary<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::mitsubishi::new_mc_3e_binary_tcp_plc;
 
     #[tokio::test]
     async fn test_create_read_buf() {
@@ -430,5 +431,30 @@ mod tests {
         assert_eq!(v2, 0x20);
         let v3 = value as u8;
         assert_eq!(v3, 0x30);
+    }
+
+    #[tokio::test]
+    async fn write_and_read() {
+        let mut plc = new_mc_3e_binary_tcp_plc(
+            Network::new("192.168.1.123", 8888).into(),
+            Duration::from_millis(300),
+        );
+        let r = plc.connect().await;
+        assert!(r.is_ok());
+        let r = plc.write("D0", DataType::Word, &[1]).await;
+        assert!(r.is_ok());
+        let r = plc.read("D0", DataType::Word, 1).await;
+        assert!(r.is_ok());
+        let r = r.unwrap();
+        assert_eq!(r[0], 1);
+        // clone
+        let new_plc = plc.clone();
+        let _ = new_plc.write("D0", DataType::Word, &[123]).await;
+        let r = new_plc.read("D0", DataType::Word, 1).await;
+        assert!(r.is_ok());
+        let r = r.unwrap();
+        assert_eq!(r[0], 123);
+        let r = plc.disconnect().await;
+        assert!(r.is_ok());
     }
 }
