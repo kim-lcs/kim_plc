@@ -12,11 +12,11 @@ use crate::prelude::*;
 /// 三菱 网口PLC MC协议 二进制
 pub struct Mc3eBinaryTcpPlc {
     /// 连接参数
-    pub conn: PlcConnector,
+    conn: PlcConnector,
     /// 客户端连接
-    pub client: Option<Arc<Mutex<TcpStream>>>,
+    client: Option<Arc<Mutex<TcpStream>>>,
     /// 超时时间
-    pub timeout: Duration,
+    timeout: Duration,
 }
 
 impl Clone for Mc3eBinaryTcpPlc {
