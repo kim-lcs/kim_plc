@@ -56,7 +56,8 @@ impl IPlc for NewtocolTcpPlc {
             }
             PlcConnector::Network(value) => {
                 let addr = format!("{}:{}", value.ip_address, value.ip_port);
-                let r = TcpStream::connect(addr).await;
+                // let r = TcpStream::connect(addr).await;
+                let r = timeout(self.timeout, TcpStream::connect(addr)).await?;
                 if let Err(err) = r {
                     let err = format!("连接错误\t{}", err);
                     event!(Level::ERROR, "\t{}", &err);
