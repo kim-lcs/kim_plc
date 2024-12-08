@@ -57,21 +57,36 @@ impl IPlc for Mc3eBinaryTcpPlc {
             PlcConnector::Network(value) => {
                 let addr = format!("{}:{}", value.ip_address, value.ip_port);
                 // let r = TcpStream::connect(addr).await;
-                let r = timeout(self.timeout, TcpStream::connect(addr)).await?;
+                let r = timeout(self.timeout, TcpStream::connect(addr)).await;
                 if let Err(err) = r {
-                    let err = format!("连接错误\t{}", err);
+                    let err = format!("连接超时错误\t{}", err);
                     event!(Level::ERROR, "\t{}", &err);
-                    Err(PlcError::Comm(err))
+                    Err(PlcError::Timeout)
                 } else {
-                    let client = r.unwrap();
-                    self.client = Some(Arc::new(Mutex::new(client)));
-                    Ok(())
+                    let r = r.unwrap();
+                    if let Err(err) = r {
+                        let err = format!("连接错误\t{}", err);
+                        event!(Level::ERROR, "\t{}", &err);
+                        Err(PlcError::Comm(err))
+                    } else {
+                        let client = r.unwrap();
+                        self.client = Some(Arc::new(Mutex::new(client)));
+                        Ok(())
+                    }
                 }
             }
         }
     }
 
     async fn disconnect(&mut self) -> PlcResult {
+        if let Some(tcp) = &self.client {
+            let tcp = Arc::clone(&tcp);
+            let mut tcp = tcp.lock().await;
+            // let r = tcp.writable().await;
+            let _ = tcp.shutdown();
+            drop(tcp);
+            println!("关闭连接成功");
+        }
         self.client = None;
         Ok(())
     }
@@ -165,14 +180,19 @@ impl IPlc for Mc3eBinaryTcpPlc {
             return Err(PlcError::Comm(err.to_string()));
         }
         // 写入数据
+        println!("client: {:?}", client);
         let r = timeout(self.timeout, client.write(buf.as_slice())).await?;
         if let Err(err) = r {
             return Err(PlcError::Comm(err.to_string()));
+        }
+        if r.unwrap() != buf.len() {
+            return Err(PlcError::Comm("写入数据失败，无法写入数据".into()));
         }
         // 读取返回数据,有可能接收数据不完整，所以需要循环读取
         let mut buf = [0u8; 1024];
         let mut index = 0;
         loop {
+            println!("client: {:?}", client);
             let r = timeout(self.timeout, client.read(&mut buf[index..])).await?;
             match r {
                 Ok(n) if n == 0 => return Err(PlcError::Comm("读取数据为空".into())),
@@ -435,9 +455,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn write_and_read() {
+    async fn plc_clone() {
         let mut plc = new_mc_3e_binary_tcp_plc(
-            Network::new("192.168.1.123", 8888).into(),
+            Network::new("192.168.5.100", 8888).into(),
             Duration::from_millis(300),
         );
         let r = plc.connect().await;
@@ -449,13 +469,27 @@ mod tests {
         let r = r.unwrap();
         assert_eq!(r[0], 1);
         // clone
-        let new_plc = plc.clone();
+        let mut new_plc = plc.clone();
         let _ = new_plc.write("D0", DataType::Word, &[123]).await;
         let r = new_plc.read("D0", DataType::Word, 1).await;
         assert!(r.is_ok());
         let r = r.unwrap();
         assert_eq!(r[0], 123);
+        let r = new_plc.disconnect().await;
+        assert!(r.is_ok());
         let r = plc.disconnect().await;
         assert!(r.is_ok());
+
+        // ! 必须要等待
+        tokio::time::sleep(Duration::from_millis(300)).await;
+        println!("再次连接PLC");
+        let r = new_plc.connect().await;
+        assert!(r.is_ok());
+        let r = new_plc.write("D0", DataType::Word, &[2]).await;
+        assert!(r.is_ok(), "{:?}", r);
+        let r = new_plc.read("D0", DataType::Word, 2).await;
+        assert!(r.is_ok(), "{:?}", r);
+        let r = new_plc.disconnect().await;
+        assert!(r.is_ok(), "{:?}", r);
     }
 }
