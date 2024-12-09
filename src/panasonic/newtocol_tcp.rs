@@ -64,6 +64,7 @@ impl IPlc for NewtocolTcpPlc {
                     Err(PlcError::Comm(err))
                 } else {
                     let client = r.unwrap();
+                    let _ = client.set_nodelay(true); // ! 解决网络物理断开后重连需要50秒的问题
                     self.client = Some(Arc::new(Mutex::new(client)));
                     Ok(())
                 }
@@ -72,6 +73,12 @@ impl IPlc for NewtocolTcpPlc {
     }
 
     async fn disconnect(&mut self) -> PlcResult {
+        if let Some(tcp) = &self.client {
+            let tcp = Arc::clone(&tcp);
+            let mut tcp = tcp.lock().await;
+            let _ = tcp.shutdown();
+            drop(tcp);
+        }
         self.client = None;
         Ok(())
     }

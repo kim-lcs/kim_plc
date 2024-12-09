@@ -56,7 +56,7 @@ impl IPlc for Mc3eBinaryTcpPlc {
             }
             PlcConnector::Network(value) => {
                 let addr = format!("{}:{}", value.ip_address, value.ip_port);
-                // let r = TcpStream::connect(addr).await;
+
                 let r = timeout(self.timeout, TcpStream::connect(addr)).await;
                 if let Err(err) = r {
                     let err = format!("连接超时错误\t{}", err);
@@ -70,6 +70,7 @@ impl IPlc for Mc3eBinaryTcpPlc {
                         Err(PlcError::Comm(err))
                     } else {
                         let client = r.unwrap();
+                        let _ = client.set_nodelay(true); // ! 解决网络物理断开后重连需要50秒的问题
                         self.client = Some(Arc::new(Mutex::new(client)));
                         Ok(())
                     }
@@ -82,10 +83,8 @@ impl IPlc for Mc3eBinaryTcpPlc {
         if let Some(tcp) = &self.client {
             let tcp = Arc::clone(&tcp);
             let mut tcp = tcp.lock().await;
-            // let r = tcp.writable().await;
             let _ = tcp.shutdown();
             drop(tcp);
-            println!("关闭连接成功");
         }
         self.client = None;
         Ok(())
@@ -180,7 +179,6 @@ impl IPlc for Mc3eBinaryTcpPlc {
             return Err(PlcError::Comm(err.to_string()));
         }
         // 写入数据
-        println!("client: {:?}", client);
         let r = timeout(self.timeout, client.write(buf.as_slice())).await?;
         if let Err(err) = r {
             return Err(PlcError::Comm(err.to_string()));
@@ -192,7 +190,6 @@ impl IPlc for Mc3eBinaryTcpPlc {
         let mut buf = [0u8; 1024];
         let mut index = 0;
         loop {
-            println!("client: {:?}", client);
             let r = timeout(self.timeout, client.read(&mut buf[index..])).await?;
             match r {
                 Ok(n) if n == 0 => return Err(PlcError::Comm("读取数据为空".into())),
