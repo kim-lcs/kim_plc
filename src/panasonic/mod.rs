@@ -8,6 +8,6 @@ use crate::{core::PlcConnector, IPlc};
 use std::time::Duration;
 
 /// 创建一个松下 网口PLC (Newtocol协议)
-pub fn new_newtocol_tcp_plc(conn: PlcConnector, timeout: Duration) -> impl IPlc {
+pub fn new_newtocol_tcp_plc(conn: PlcConnector, timeout: Duration) -> NewtocolTcpPlc {
     NewtocolTcpPlc::new(conn, timeout)
 }
