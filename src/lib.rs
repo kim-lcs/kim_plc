@@ -11,7 +11,7 @@ use std::{future::Future, time::Duration};
 /// ! 通用接口，所有PLC必须实现此接口
 #[no_mangle]
 #[allow(unused)]
-pub trait IPlc {
+pub trait IPlc: Clone {
     /// 创建PLC实例
     /// * `conn`连接参数
     /// * `timeout` 通讯超时时间，推荐 300ms 超时时间

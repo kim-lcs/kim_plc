@@ -24,6 +24,22 @@ pub struct NewtocolTcpPlc {
     station: u8,
 }
 
+impl Clone for NewtocolTcpPlc {
+    fn clone(&self) -> Self {
+        Self {
+            conn: self.conn.clone(),
+            client: if self.client.is_none() {
+                None
+            } else {
+                let client = self.client.as_ref().unwrap();
+                Some(client.clone())
+            },
+            timeout: self.timeout.clone(),
+            station: self.station,
+        }
+    }
+}
+
 #[allow(unused)]
 impl NewtocolTcpPlc {
     /// 设置站号，默认为1
