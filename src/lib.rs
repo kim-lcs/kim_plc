@@ -48,6 +48,7 @@ pub enum DataType {
 }
 
 /// PLC 类型
+#[derive(Clone)]
 pub enum PlcType {
     /// 三菱网口MC协议二进制
     MisubishTcpMcBin,
