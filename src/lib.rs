@@ -47,5 +47,13 @@ pub enum DataType {
     Word,
 }
 
+/// PLC 类型
+pub enum PlcType {
+    /// 三菱网口MC协议二进制
+    MisubishTcpMcBin,
+    /// 松下网口Newtocol协议PLC
+    PanasonicTcpNewtocol,
+}
+
 #[cfg(test)]
 mod tests {}
