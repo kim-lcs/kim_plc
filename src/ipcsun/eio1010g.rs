@@ -11,8 +11,8 @@ use tracing::{event, Level};
 
 use crate::prelude::*;
 
-/// IPCSUN 的 16口IO网络控制器，使用白话协议。
-pub struct IpcsunEio1608I {
+/// IPCSUN 的 10口IO网络控制器，使用白话协议。
+pub struct IpcsunEio1010G {
     /// 连接参数
     conn: PlcConnector,
     /// 客户端连接
@@ -21,7 +21,7 @@ pub struct IpcsunEio1608I {
     timeout: Duration,
 }
 
-impl Clone for IpcsunEio1608I {
+impl Clone for IpcsunEio1010G {
     fn clone(&self) -> Self {
         Self {
             conn: self.conn.clone(),
@@ -36,13 +36,13 @@ impl Clone for IpcsunEio1608I {
     }
 }
 
-unsafe impl Send for IpcsunEio1608I {}
+unsafe impl Send for IpcsunEio1010G {}
 
-unsafe impl Sync for IpcsunEio1608I {}
+unsafe impl Sync for IpcsunEio1010G {}
 
-impl IPlc for IpcsunEio1608I {
+impl IPlc for IpcsunEio1010G {
     fn new(conn: PlcConnector, timeout: std::time::Duration) -> Self {
-        IpcsunEio1608I {
+        IpcsunEio1010G {
             conn,
             client: None,
             timeout,
@@ -104,8 +104,8 @@ impl IPlc for IpcsunEio1608I {
         data_type: DataType,
         len: u16,
     ) -> Result<Vec<u16>, PlcError> {
-        if len == 0 || len > 16 {
-            return Err(PlcError::Param("超出读取长度范围[1~16]".into()));
+        if len == 0 || len > 10 {
+            return Err(PlcError::Param("超出读取长度范围[1~10]".into()));
         }
         if data_type == DataType::Word {
             return Err(PlcError::Param("当前不支持Word类型读取".to_string()));
@@ -113,11 +113,11 @@ impl IPlc for IpcsunEio1608I {
         let address_str: String = address_name.into();
         let address = address_str.parse::<i32>();
         if let Err(_err) = address {
-            return Err(PlcError::Addr("无效的地址[1~16]".to_string()));
+            return Err(PlcError::Addr("无效的地址[1~10]".to_string()));
         }
         let address = address.unwrap() - 1;
-        if address < 0 || address > 15 {
-            return Err(PlcError::Addr("无效的地址[1~16]".to_string()));
+        if address < 0 || address > 10 {
+            return Err(PlcError::Addr("无效的地址[1~10]".to_string()));
         }
         // 创建读取IO模块数据buffer
         let buf = "IOGETALL".as_bytes();
@@ -150,7 +150,7 @@ impl IPlc for IpcsunEio1608I {
                         Ok(r) => match r {
                             Ok(arr) => {
                                 let arr =
-                                    parse_eio_read(&arr[address as usize..16], &data_type, len)?;
+                                    parse_eio_read(&arr[address as usize..12], &data_type, len)?;
                                 return Ok(arr);
                             }
                             Err(err) => {
@@ -179,7 +179,7 @@ impl IPlc for IpcsunEio1608I {
         data_type: DataType,
         datas: &[u16],
     ) -> PlcResult {
-        if datas.len() == 0 || datas.len() > 8 {
+        if datas.len() == 0 || datas.len() > 5 {
             return Err(PlcError::Param("超出写入长度超出范围[1~8]".into()));
         }
         if data_type == DataType::Word {
@@ -189,11 +189,11 @@ impl IPlc for IpcsunEio1608I {
         let address_str: String = address_name.into();
         let address = address_str.parse::<i32>();
         if let Err(_err) = address {
-            return Err(PlcError::Addr("无效的地址[1~8]".to_string()));
+            return Err(PlcError::Addr("无效的地址[1~5]".to_string()));
         }
         let address = address.unwrap() - 1;
-        if address < 0 || address > 8 {
-            return Err(PlcError::Addr("无效的地址[1~8]".to_string()));
+        if address < 0 || address > 5 {
+            return Err(PlcError::Addr("无效的地址[1~5]".to_string()));
         }
         // 检查写入数据是否正确
         let first = datas[0];
@@ -264,15 +264,15 @@ impl IPlc for IpcsunEio1608I {
 /// * `Ok(Err(err))` => 数据不完整，需要等待接收剩余部分
 /// * `Err(err)` => 接收数据错误
 fn check_eio_read(buf: &[u8]) -> Result<Result<&[u8], &str>, PlcError> {
-    if buf.len() < 18 {
+    if buf.len() < 12 {
         return Ok(Err("数据未接收完成"));
     }
     let target = [0x0D, 0x0A];
-    let r = buf[16..]
+    let r = buf[10..]
         .windows(target.len())
         .position(|window| window == &target);
     if let Some(p) = r {
-        return Ok(Ok(&buf[p..(p + 18)]));
+        return Ok(Ok(&buf[p..(p + 12)]));
     } else {
         return Ok(Err("未找到结束符 0x0D 0x0A"));
     }
@@ -319,25 +319,24 @@ fn parse_eio_read<'a>(buf: &'a [u8], data_type: &DataType, len: u16) -> Result<V
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ipcsun::new_eio1608i_tcp_plc;
 
     #[tokio::test]
-    async fn plc_clone() {
-        let mut plc = new_eio1608i_tcp_plc(
+    async fn read_and_write() {
+        let mut plc = crate::ipcsun::new_eio1010g_tcp_plc(
             Network::new("192.168.1.5", 502).into(),
             Duration::from_millis(300),
         );
         let r = plc.connect().await;
         assert!(r.is_ok());
-        let r = plc.write("1", DataType::Bit, &[1; 8]).await;
+        let r = plc.write("1", DataType::Bit, &[1; 5]).await;
         assert!(r.is_ok());
-        let r = plc.read("1", DataType::Bit, 16).await;
+        let r = plc.read("1", DataType::Bit, 5).await;
         assert!(r.is_ok());
-        assert_eq!(r.unwrap()[0..8], [1; 8]);
-        let r = plc.write("1", DataType::Bit, &[0; 8]).await;
+        assert_eq!(r.unwrap()[0..5], [1; 5]);
+        let r = plc.write("1", DataType::Bit, &[0; 5]).await;
         assert!(r.is_ok());
-        let r = plc.read("1", DataType::Bit, 8).await;
+        let r = plc.read("1", DataType::Bit, 5).await;
         assert!(r.is_ok());
-        assert_eq!(r.unwrap()[0..8], [0; 8]);
+        assert_eq!(r.unwrap()[0..5], [0; 5]);
     }
 }
