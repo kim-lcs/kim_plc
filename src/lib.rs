@@ -1,5 +1,6 @@
 mod core;
 mod error;
+pub mod ipcsun;
 pub mod mitsubishi;
 pub mod panasonic;
 pub mod prelude;
@@ -45,15 +46,6 @@ pub enum DataType {
     Bit,
     /// i16 类型
     Word,
-}
-
-/// PLC 类型
-#[derive(Clone)]
-pub enum PlcType {
-    /// 三菱网口MC协议二进制
-    MisubishTcpMcBin,
-    /// 松下网口Newtocol协议PLC
-    PanasonicTcpNewtocol,
 }
 
 #[cfg(test)]
