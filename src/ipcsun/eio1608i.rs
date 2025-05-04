@@ -120,7 +120,8 @@ impl IPlc for IpcsunEio1608I {
             return Err(PlcError::Addr("无效的地址[1~16]".to_string()));
         }
         // 创建读取IO模块数据buffer
-        let buf = "IOGETALL".as_bytes();
+        // ! 2025-05-04 Kim 优化：每个指令增加回车换行符
+        let buf = "IOGETALL\r\n".as_bytes();
         // 获取发送客户端
         if let None = self.client {
             return Err(PlcError::NotConnect);
@@ -213,6 +214,8 @@ impl IPlc for IpcsunEio1608I {
                 return Err(PlcError::Param("写入数据只能全部是 1 或者 0".into()));
             }
         }
+        // ! 2025-05-04 Kim 优化：每个指令增加回车换行符
+        cmd.push_str("\r\n");
         // 创建写入IO模块数据buffer
         let buf = cmd.as_bytes();
         // 获取发送客户端
